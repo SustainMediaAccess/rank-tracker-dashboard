@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rank Tracker — Sustain Media</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .glass { backdrop-filter: blur(12px); background: rgba(255,255,255,0.03); }
+        .glow-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.15); }
+        .glow-red { box-shadow: 0 0 20px rgba(239, 68, 68, 0.15); }
+        .pos-1-3 { color: #22c55e; font-weight: 700; }
+        .pos-4-10 { color: #3b82f6; font-weight: 600; }
+        .pos-11-20 { color: #eab308; font-weight: 500; }
+        .pos-21-plus { color: #ef4444; font-weight: 500; }
+        .trend-up { color: #22c55e; }
+        .trend-down { color: #ef4444; }
+        .trend-flat { color: #6b7280; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+
+        /* Light theme */
+        body.light { background: #f8fafc; color: #1e293b; }
+        body.light .glass { background: rgba(0,0,0,0.02); }
+        body.light aside { background: #ffffff; border-color: #e2e8f0; }
+        body.light .border-gray-800 { border-color: #e2e8f0 !important; }
+        body.light .border-gray-800\/50 { border-color: rgba(226,232,240,0.5) !important; }
+        body.light .border-gray-800\/30 { border-color: rgba(226,232,240,0.3) !important; }
+        body.light .bg-gray-900\/80 { background: #ffffff !important; }
+        body.light .bg-gray-900\/50 { background: #f1f5f9 !important; }
+        body.light .bg-gray-900\/30 { background: #f8fafc !important; }
+        body.light .bg-gray-950 { background: #f8fafc !important; }
+        body.light .bg-gray-800 { background: #e2e8f0 !important; }
+        body.light .bg-gray-800\/50 { background: rgba(226,232,240,0.5) !important; }
+        body.light .bg-gray-800\/30 { background: rgba(226,232,240,0.3) !important; }
+        body.light .bg-gray-800\/20 { background: rgba(226,232,240,0.2) !important; }
+        body.light .text-gray-100 { color: #1e293b !important; }
+        body.light .text-gray-400 { color: #64748b !important; }
+        body.light .text-gray-500 { color: #94a3b8 !important; }
+        body.light .text-gray-600 { color: #94a3b8 !important; }
+        body.light .text-white { color: #1e293b !important; }
+        body.light .hover\:bg-gray-800\/50:hover { background: rgba(226,232,240,0.5) !important; }
+        body.light .hover\:bg-gray-800\/30:hover { background: rgba(226,232,240,0.3) !important; }
+        body.light .sidebar-item:hover { background: rgba(0,0,0,0.04) !important; }
+        body.light .sidebar-item.active { background: rgba(59, 130, 246, 0.08) !important; }
+        body.light select { background: #f1f5f9 !important; border-color: #e2e8f0 !important; color: #1e293b !important; }
+        body.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+        body.light .text-2xl.font-bold, body.light .text-3xl.font-bold { color: #0f172a; }
+        body.light .text-sm.font-semibold { color: #1e293b; }
+        body.light .font-medium { color: #1e293b; }
+        body.light .glow-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.1); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .sidebar-item:hover { background: rgba(255,255,255,0.08); }
+        .sidebar-item.active { background: rgba(59, 130, 246, 0.2); border-left: 3px solid #3b82f6; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+    <div id="app" class="flex h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-72 bg-gray-900/80 border-r border-gray-800 flex flex-col overflow-hidden">
+            <div class="p-5 border-b border-gray-800">
+                <div class="flex items-center gap-3 flex-1">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-sm">SM</div>
+                    <div>
+                        <h1 class="text-sm font-semibold">Sustain Media</h1>
+                        <p class="text-xs text-gray-500">Rank Tracker</p>
+                    </div>
+                </div>
+                
+                <button onclick="toggleTheme()" id="theme-toggle" class="w-8 h-8 rounded-lg border border-gray-700 flex items-center justify-center text-sm hover:bg-gray-800/50" title="Toggle light/dark mode">
+                    🌙
+                </button>
+
+            </div>
+            <div class="p-3">
+                <button onclick="showOverview()" class="sidebar-item active w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2" id="nav-overview">
+                    <span>📊</span> All Clients
+                </button>
+                <button onclick="showAlerts()" class="sidebar-item w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 mt-1" id="nav-alerts">
+                    <span>🔔</span> Alerts
+                    <span id="alert-badge" class="ml-auto bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full hidden">0</span>
+                </button>
+            </div>
+            <div class="px-3 py-2 text-xs text-gray-500 uppercase tracking-wider font-medium">Clients</div>
+            <div id="client-list" class="flex-1 overflow-y-auto px-2 pb-4">
+                <!-- Client list populated by JS -->
+            </div>
+            <div class="p-3 border-t border-gray-800 text-xs text-gray-600">
+                Last updated: <span id="last-updated">—</span>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <!-- Overview Page -->
+            <div id="page-overview" class="fade-in">
+                <div class="p-6 border-b border-gray-800">
+                    <h2 class="text-2xl font-bold">All Clients Overview</h2>
+                    <p class="text-gray-500 text-sm mt-1">Weekly rank tracking across all Sustain Media clients</p>
+                </div>
+                
+                <!-- Stats Row -->
+                <div class="grid grid-cols-4 gap-4 p-6">
+                    <div class="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider">Total Clients</p>
+                        <p id="stat-clients" class="text-3xl font-bold mt-1">0</p>
+                    </div>
+                    <div class="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider">Keywords Tracked</p>
+                        <p id="stat-keywords" class="text-3xl font-bold mt-1">0</p>
+                    </div>
+                    <div class="bg-gray-900/50 rounded-xl p-4 border border-gray-800 glow-green">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider">In Top 10</p>
+                        <p id="stat-top10" class="text-3xl font-bold mt-1 text-green-400">0</p>
+                    </div>
+                    <div class="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider">Avg Position</p>
+                        <p id="stat-avg" class="text-3xl font-bold mt-1">—</p>
+                    </div>
+                </div>
+                
+                <!-- Client Table -->
+                <div class="px-6 pb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-400" id="table-count"></h3>
+                        
+                <div class="flex gap-3 items-center">
+                    <select id="strategist-filter" onchange="filterByStrategist()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs">
+                        <option value="all">All Strategists</option>
+                        <option value="Labeeb">Labeeb</option>
+                        <option value="Jesson">Jesson</option>
+                        <option value="Miguel">Miguel</option>
+                        <option value="Bjorn">Bjorn</option>
+                    </select>
+                    <select id="status-filter" onchange="filterByStatus()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs">
+                        <option value="all">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="pending">Pending KW</option>
+                        <option value="need_domain">Need Domain</option>
+                    </select>
+                </div>
+                    </div>
+                    <div class="bg-gray-900/30 rounded-xl border border-gray-800 overflow-hidden">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
+                                    <th class="text-left p-4">Client</th>
+                                    <th class="text-left p-4">Industry</th>
+                                    <th class="text-center p-4">Keywords</th>
+                                    <th class="text-center p-4">Top 3</th>
+                                    <th class="text-center p-4">Top 10</th>
+                                    <th class="text-center p-4">Top 20</th>
+                                    <th class="text-center p-4">Avg Pos</th>
+                                    <th class="text-center p-4">Trend</th>
+                                    <th class="text-left p-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="client-table-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Detail Page -->
+            <div id="page-client" class="fade-in hidden">
+                <div class="p-6 border-b border-gray-800 flex items-center justify-between">
+                    <div>
+                        <button onclick="showOverview()" class="text-gray-500 text-sm hover:text-gray-300 mb-1">← All Clients</button>
+                        <h2 id="client-name" class="text-2xl font-bold"></h2>
+                        <p id="client-meta" class="text-gray-500 text-sm mt-1"></p>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="bg-gray-900/50 rounded-xl px-4 py-3 border border-gray-800 text-center">
+                            <p class="text-xs text-gray-500">Top 10</p>
+                            <p id="detail-top10" class="text-2xl font-bold text-green-400">0</p>
+                        </div>
+                        <div class="bg-gray-900/50 rounded-xl px-4 py-3 border border-gray-800 text-center">
+                            <p class="text-xs text-gray-500">Avg Pos</p>
+                            <p id="detail-avg" class="text-2xl font-bold">—</p>
+                        </div>
+                        <div class="bg-gray-900/50 rounded-xl px-4 py-3 border border-gray-800 text-center">
+                            <p class="text-xs text-gray-500">Tracked</p>
+                            <p id="detail-tracked" class="text-2xl font-bold">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Position Distribution Chart -->
+                <div class="p-6">
+                    <div class="bg-gray-900/30 rounded-xl border border-gray-800 p-6 mb-6">
+                        <h3 class="text-sm font-semibold text-gray-400 mb-4">Position Distribution</h3>
+                        <div class="flex gap-2 h-8">
+                            <div id="bar-top3" class="bg-green-500 rounded-l-lg transition-all" style="width:0%"></div>
+                            <div id="bar-top10" class="bg-blue-500 transition-all" style="width:0%"></div>
+                            <div id="bar-top20" class="bg-yellow-500 transition-all" style="width:0%"></div>
+                            <div id="bar-rest" class="bg-red-500 rounded-r-lg transition-all" style="width:0%"></div>
+                        </div>
+                        <div class="flex gap-4 mt-3 text-xs text-gray-500">
+                            <span>🟢 #1-3: <span id="label-top3">0</span></span>
+                            <span>🔵 #4-10: <span id="label-top10">0</span></span>
+                            <span>🟡 #11-20: <span id="label-top20">0</span></span>
+                            <span>🔴 #21+: <span id="label-rest">0</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Keyword Table -->
+                <div class="px-6 pb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-400">Keywords</h3>
+                        <div class="flex gap-2">
+                            <select id="kw-filter" onchange="filterKeywords()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs">
+                                <option value="all">All Keywords</option>
+                                <option value="top10">Top 10</option>
+                                <option value="top20">Top 20</option>
+                                <option value="drops">Drops Only</option>
+                                <option value="gains">Gains Only</option>
+                            </select>
+                            <select id="kw-sort" onchange="sortKeywords()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs">
+                                <option value="position">By Position</option>
+                                <option value="volume">By Volume</option>
+                                <option value="change">By Change</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="bg-gray-900/30 rounded-xl border border-gray-800 overflow-hidden">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
+                                    <th class="text-center p-3 w-16">#</th>
+                                    <th class="text-left p-3">Keyword</th>
+                                    <th class="text-center p-3">Volume</th>
+                                    <th class="text-center p-3">CPC</th>
+                                    <th class="text-center p-3">Position</th>
+                                    <th class="text-center p-3">Change</th>
+                                    <th class="text-left p-3">URL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keyword-table-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Page -->
+            <div id="page-alerts" class="fade-in hidden">
+                <div class="p-6 border-b border-gray-800">
+                    <h2 class="text-2xl font-bold">🔔 Ranking Alerts</h2>
+                    <p class="text-gray-500 text-sm mt-1">Keywords that dropped 5+ positions this week</p>
+                </div>
+                <div id="alerts-list" class="p-6">
+                    <div class="text-gray-600 text-center py-12">
+                        <p class="text-4xl mb-3">✅</p>
+                        <p>No significant drops this week</p>
+                        <p class="text-sm mt-1">Keywords dropping 5+ positions will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // ═══════════════════════════════════════════════
+    // DATA LAYER — Reads from Google Sheet
+    // ═══════════════════════════════════════════════
+    
+    const SHEET_ID = '1Mqvi7N9JGzwPj9L2c-dlxzJXVo9S4miFg34IwFZ-2bg';
+    const API_KEY = ''; // Will use published sheet or passed in
+    
+    // Sample data structure (will be replaced by Sheet data)
+    let clientData = {};
+    let currentClient = null;
+    
+    // Initialize with embedded data (from DataForSEO pulls)
+    function loadData() {
+        // This will be populated from the Google Sheet or embedded JSON
+        // For now, using the Groundsmen data from our DataForSEO pull
+        clientData = EMBEDDED_DATA;
+        renderOverview();
+        renderSidebar();
+    }
+    
+    // ═══════════════════════════════════════════════
+    // NAVIGATION
+    // ═══════════════════════════════════════════════
+    
+    function showOverview() {
+        document.getElementById('page-overview').classList.remove('hidden');
+        document.getElementById('page-client').classList.add('hidden');
+        document.getElementById('page-alerts').classList.add('hidden');
+        setActiveNav('nav-overview');
+        document.querySelectorAll('.client-nav').forEach(el => el.classList.remove('active'));
+    }
+    
+    function showAlerts() {
+        document.getElementById('page-overview').classList.add('hidden');
+        document.getElementById('page-client').classList.add('hidden');
+        document.getElementById('page-alerts').classList.remove('hidden');
+        setActiveNav('nav-alerts');
+        document.querySelectorAll('.client-nav').forEach(el => el.classList.remove('active'));
+    }
+    
+    function showClient(domain) {
+        currentClient = domain;
+        document.getElementById('page-overview').classList.add('hidden');
+        document.getElementById('page-client').classList.remove('hidden');
+        document.getElementById('page-alerts').classList.add('hidden');
+        
+        setActiveNav(null);
+        document.querySelectorAll('.client-nav').forEach(el => {
+            el.classList.toggle('active', el.dataset.domain === domain);
+        });
+        
+        renderClientDetail(domain);
+    }
+    
+    function setActiveNav(id) {
+        document.querySelectorAll('.sidebar-item:not(.client-nav)').forEach(el => {
+            el.classList.toggle('active', el.id === id);
+        });
+    }
+    
+    // ═══════════════════════════════════════════════
+    // RENDERING
+    // ═══════════════════════════════════════════════
+    
+    function posClass(pos) {
+        if (pos <= 3) return 'pos-1-3';
+        if (pos <= 10) return 'pos-4-10';
+        if (pos <= 20) return 'pos-11-20';
+        return 'pos-21-plus';
+    }
+    
+    function changeHtml(change) {
+        if (change === null || change === undefined || change === 'NEW') return '<span class="text-blue-400 text-xs">NEW</span>';
+        if (change === 0) return '<span class="trend-flat">—</span>';
+        if (change > 0) return `<span class="trend-up">▲ ${change}</span>`;
+        return `<span class="trend-down">▼ ${Math.abs(change)}</span>`;
+    }
+    
+    function renderSidebar() {
+        const list = document.getElementById('client-list');
+        const clients = Object.entries(clientData).sort((a, b) => a[1].name.localeCompare(b[1].name));
+        
+        list.innerHTML = clients.map(([domain, data]) => {
+            const top10 = data.keywords ? data.keywords.filter(k => k.position <= 10).length : 0;
+            const statusDot = data.status === 'active' ? '🟢' : (data.status === 'pending' ? '🟡' : '⚪');
+            return `<button class="sidebar-item client-nav w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between mt-0.5 hover:bg-gray-800/50" data-domain="${domain}" onclick="showClient('${domain}')">
+                <div class="flex items-center gap-2 truncate">
+                    <span class="text-xs">${statusDot}</span>
+                    <span class="truncate">${data.name}</span>
+                </div>
+                ${data.keywords ? `<span class="text-xs text-gray-600">${top10} in top 10</span>` : ''}
+            </button>`;
+        }).join('');
+    }
+    
+    function renderOverview() {
+        const clients = Object.values(clientData);
+        const activeClients = clients.filter(c => c.keywords && c.keywords.length > 0);
+        
+        // Stats
+        const totalKw = activeClients.reduce((sum, c) => sum + (c.keywords?.length || 0), 0);
+        const totalTop10 = activeClients.reduce((sum, c) => sum + (c.keywords?.filter(k => k.position <= 10).length || 0), 0);
+        const allPositions = activeClients.flatMap(c => (c.keywords || []).map(k => k.position));
+        const avgPos = allPositions.length ? (allPositions.reduce((a, b) => a + b, 0) / allPositions.length).toFixed(1) : '—';
+        
+        document.getElementById('stat-clients').textContent = clients.length;
+        document.getElementById('stat-keywords').textContent = totalKw;
+        document.getElementById('stat-top10').textContent = totalTop10;
+        document.getElementById('stat-avg').textContent = avgPos;
+        
+        // Table
+        const tbody = document.getElementById('client-table-body');
+        // Apply filters
+        let filtered = clients;
+        if (currentStrategistFilter !== 'all') {
+            filtered = filtered.filter(c => c.strategist === currentStrategistFilter);
+        }
+        if (currentStatusFilter !== 'all') {
+            filtered = filtered.filter(c => c.status === currentStatusFilter);
+        }
+        
+        const tableCount = document.getElementById('table-count');
+        if (tableCount) tableCount.textContent = `Showing ${filtered.length} of ${clients.length} clients`;
+        
+        tbody.innerHTML = filtered.sort((a, b) => {
+            // Active clients first, then by name
+            if (a.status === 'active' && b.status !== 'active') return -1;
+            if (a.status !== 'active' && b.status === 'active') return 1;
+            return a.name.localeCompare(b.name);
+        }).map(c => {
+            const kws = c.keywords || [];
+            const top3 = kws.filter(k => k.position <= 3).length;
+            const top10 = kws.filter(k => k.position <= 10).length;
+            const top20 = kws.filter(k => k.position <= 20).length;
+            const avg = kws.length ? (kws.reduce((s, k) => s + k.position, 0) / kws.length).toFixed(1) : '—';
+            const statusBadge = c.status === 'active' 
+                ? '<span class="bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs">Active</span>'
+                : c.status === 'pending'
+                    ? '<span class="bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full text-xs">Pending</span>'
+                    : '<span class="bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded-full text-xs">Need Domain</span>';
+            
+            return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 cursor-pointer" onclick="showClient('${c.domain || ''}')">
+                <td class="p-4">
+                    <div class="font-medium">${c.name}</div>
+                    <div class="text-xs text-gray-600">${c.domain || '—'}</div>
+                </td>
+                <td class="p-4 text-sm text-gray-400">${c.industry || '—'}</td>
+                <td class="p-4 text-center text-sm">${kws.length || '—'}</td>
+                <td class="p-4 text-center text-sm ${top3 > 0 ? 'pos-1-3' : 'text-gray-600'}">${top3 || '—'}</td>
+                <td class="p-4 text-center text-sm ${top10 > 0 ? 'pos-4-10' : 'text-gray-600'}">${top10 || '—'}</td>
+                <td class="p-4 text-center text-sm ${top20 > 0 ? 'pos-11-20' : 'text-gray-600'}">${top20 || '—'}</td>
+                <td class="p-4 text-center text-sm">${avg}</td>
+                <td class="p-4 text-center">${changeHtml(null)}</td>
+                <td class="p-4">${statusBadge}</td>
+            </tr>`;
+        }).join('');
+        
+        document.getElementById('last-updated').textContent = new Date().toLocaleDateString();
+    }
+    
+    function renderClientDetail(domain) {
+        const data = clientData[domain];
+        if (!data) return;
+        
+        document.getElementById('client-name').textContent = data.name;
+        document.getElementById('client-meta').textContent = `${data.domain || '—'} · ${data.location || '—'} · ${data.industry || '—'} · Strategist: ${data.strategist || '—'}`;
+        
+        const kws = data.keywords || [];
+        const top3 = kws.filter(k => k.position <= 3).length;
+        const top10 = kws.filter(k => k.position <= 10).length;
+        const top20 = kws.filter(k => k.position <= 20).length;
+        const rest = kws.length - top20;
+        const avg = kws.length ? (kws.reduce((s, k) => s + k.position, 0) / kws.length).toFixed(1) : '—';
+        
+        document.getElementById('detail-top10').textContent = top10;
+        document.getElementById('detail-avg').textContent = avg;
+        document.getElementById('detail-tracked').textContent = kws.length;
+        
+        // Position bars
+        const total = kws.length || 1;
+        document.getElementById('bar-top3').style.width = `${(top3/total)*100}%`;
+        document.getElementById('bar-top10').style.width = `${((top10-top3)/total)*100}%`;
+        document.getElementById('bar-top20').style.width = `${((top20-top10)/total)*100}%`;
+        document.getElementById('bar-rest').style.width = `${(rest/total)*100}%`;
+        document.getElementById('label-top3').textContent = top3;
+        document.getElementById('label-top10').textContent = top10 - top3;
+        document.getElementById('label-top20').textContent = top20 - top10;
+        document.getElementById('label-rest').textContent = rest;
+        
+        renderKeywordTable(kws);
+    }
+    
+    function renderKeywordTable(keywords) {
+        if (!keywords || keywords.length === 0) {
+            const tbody = document.getElementById('keyword-table-body');
+            tbody.innerHTML = '<tr><td colspan="7" class="p-12 text-center text-gray-600"><p class="text-3xl mb-2">📋</p><p class="text-sm">No keywords tracked yet</p><p class="text-xs mt-1">Keyword data will appear here after the weekly rank check runs</p></td></tr>';
+            return;
+        }
+        const tbody = document.getElementById('keyword-table-body');
+        tbody.innerHTML = keywords.sort((a, b) => a.position - b.position).map((kw, i) => {
+            const urlShort = kw.url ? new URL(kw.url).pathname : '—';
+            return `<tr class="border-b border-gray-800/30 hover:bg-gray-800/20">
+                <td class="p-3 text-center text-sm ${posClass(kw.position)}">${kw.position}</td>
+                <td class="p-3 text-sm font-medium">${kw.keyword}</td>
+                <td class="p-3 text-center text-sm text-gray-400">${kw.volume?.toLocaleString() || '—'}</td>
+                <td class="p-3 text-center text-sm text-gray-500">$${kw.cpc?.toFixed(2) || '—'}</td>
+                <td class="p-3 text-center">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg ${kw.position <= 3 ? 'bg-green-500/20' : kw.position <= 10 ? 'bg-blue-500/20' : kw.position <= 20 ? 'bg-yellow-500/20' : 'bg-red-500/20'} ${posClass(kw.position)} text-sm">
+                        ${kw.position}
+                    </span>
+                </td>
+                <td class="p-3 text-center text-sm">${kw.is_new ? changeHtml('NEW') : changeHtml(kw.change || 0)}</td>
+                <td class="p-3 text-xs text-gray-600 truncate max-w-[200px]" title="${kw.url || ''}">${urlShort}</td>
+            </tr>`;
+        }).join('');
+    }
+    
+    function filterKeywords() {
+        // Implement filtering
+        if (!currentClient || !clientData[currentClient]) return;
+        let kws = [...(clientData[currentClient].keywords || [])];
+        const filter = document.getElementById('kw-filter').value;
+        
+        if (filter === 'top10') kws = kws.filter(k => k.position <= 10);
+        else if (filter === 'top20') kws = kws.filter(k => k.position <= 20);
+        else if (filter === 'drops') kws = kws.filter(k => k.is_down);
+        else if (filter === 'gains') kws = kws.filter(k => k.is_up);
+        
+        renderKeywordTable(kws);
+    }
+    
+    function sortKeywords() {
+        if (!currentClient || !clientData[currentClient]) return;
+        let kws = [...(clientData[currentClient].keywords || [])];
+        const sort = document.getElementById('kw-sort').value;
+        
+        if (sort === 'volume') kws.sort((a, b) => (b.volume || 0) - (a.volume || 0));
+        else if (sort === 'change') kws.sort((a, b) => (b.change || 0) - (a.change || 0));
+        else kws.sort((a, b) => a.position - b.position);
+        
+        renderKeywordTable(kws);
+    }
+    
+    // ═══════════════════════════════════════════════
+    // EMBEDDED DATA (updated by Viktor weekly)
+    // ═══════════════════════════════════════════════
+    const EMBEDDED_DATA = {
+  "groundsmennc.com": {
+    "name": "The Groundsmen Landscaping",
+    "domain": "groundsmennc.com",
+    "location": "Concord, NC",
+    "industry": "Landscaping",
+    "strategist": "Labeeb",
+    "status": "active",
+    "keywords": [
+      {
+        "keyword": "landscaping harrisburg nc",
+        "volume": 110,
+        "cpc": 12.0,
+        "position": 1,
+        "url": "https://groundsmennc.com/landscaping-harrisburg-nc.html",
+        "is_new": false,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "landscaper concord nc",
+        "volume": 260,
+        "cpc": 15.2,
+        "position": 2,
+        "url": "https://groundsmennc.com/",
+        "is_new": false,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "commercial landscaping concord nc",
+        "volume": 50,
+        "cpc": 20.0,
+        "position": 2,
+        "url": "https://groundsmennc.com/commercial-landscaping-concord-nc.html",
+        "is_new": false,
+        "is_up": true,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "landscaping concord nc",
+        "volume": 320,
+        "cpc": 14.75,
+        "position": 3,
+        "url": "https://groundsmennc.com/",
+        "is_new": false,
+        "is_up": true,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "lawn care kannapolis nc",
+        "volume": 140,
+        "cpc": 14.0,
+        "position": 3,
+        "url": "https://groundsmennc.com/lawn-care-kannapolis-nc.html",
+        "is_new": false,
+        "is_up": true,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "lawn mowing concord nc",
+        "volume": 140,
+        "cpc": 22.0,
+        "position": 4,
+        "url": "https://groundsmennc.com/lawn-care-concord-nc.html",
+        "is_new": false,
+        "is_up": true,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "lawn service concord nc",
+        "volume": 210,
+        "cpc": 28.0,
+        "position": 5,
+        "url": "https://groundsmennc.com/lawn-care-concord-nc.html",
+        "is_new": false,
+        "is_up": true,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "hardscaping concord nc",
+        "volume": 110,
+        "cpc": 15.0,
+        "position": 6,
+        "url": "https://groundsmennc.com/hardscaping-concord-nc.html",
+        "is_new": false,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "lawn care concord nc",
+        "volume": 390,
+        "cpc": 32.5,
+        "position": 7,
+        "url": "https://groundsmennc.com/lawn-care-concord-nc.html",
+        "is_new": false,
+        "is_up": true,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "landscape design concord nc",
+        "volume": 170,
+        "cpc": 12.0,
+        "position": 8,
+        "url": "https://groundsmennc.com/landscape-design-concord-nc.html",
+        "is_new": false,
+        "is_up": true,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "mulching concord nc",
+        "volume": 90,
+        "cpc": 10.0,
+        "position": 9,
+        "url": "https://groundsmennc.com/mulching-concord-nc.html",
+        "is_new": false,
+        "is_up": true,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "leaf removal concord nc",
+        "volume": 50,
+        "cpc": 8.0,
+        "position": 10,
+        "url": "https://groundsmennc.com/leaf-removal-concord-nc.html",
+        "is_new": false,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "sod installation concord nc",
+        "volume": 70,
+        "cpc": 14.0,
+        "position": 11,
+        "url": "https://groundsmennc.com/sod-installation-concord-nc.html",
+        "is_new": false,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "tree service concord nc",
+        "volume": 320,
+        "cpc": 18.5,
+        "position": 12,
+        "url": "https://groundsmennc.com/tree-service-concord-nc.html",
+        "is_new": false,
+        "is_up": false,
+        "is_down": true,
+        "change": 0
+      },
+      {
+        "keyword": "lawn fertilization concord nc",
+        "volume": 50,
+        "cpc": 10.0,
+        "position": 13,
+        "url": "https://groundsmennc.com/lawn-fertilization-concord-nc.html",
+        "is_new": false,
+        "is_up": false,
+        "is_down": true,
+        "change": 0
+      },
+      {
+        "keyword": "spring cleanup concord nc",
+        "volume": 40,
+        "cpc": 6.0,
+        "position": 14,
+        "url": "https://groundsmennc.com/spring-cleanup-concord-nc.html",
+        "is_new": false,
+        "is_up": false,
+        "is_down": true,
+        "change": 0
+      },
+      {
+        "keyword": "weed control concord nc",
+        "volume": 60,
+        "cpc": 12.0,
+        "position": 15,
+        "url": "https://groundsmennc.com/weed-control-concord-nc.html",
+        "is_new": false,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "fall cleanup concord nc",
+        "volume": 30,
+        "cpc": 5.0,
+        "position": 16,
+        "url": "https://groundsmennc.com/fall-cleanup-concord-nc.html",
+        "is_new": false,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "landscape maintenance concord nc",
+        "volume": 40,
+        "cpc": 8.0,
+        "position": 17,
+        "url": "https://groundsmennc.com/landscape-maintenance-concord-nc.html",
+        "is_new": false,
+        "is_up": true,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "what is landscaping",
+        "volume": 8100,
+        "cpc": 6.5,
+        "position": 18,
+        "url": "https://groundsmennc.com/what-is-the-meaning-of-landscaping.html",
+        "is_new": true,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "landscaping what is it",
+        "volume": 6600,
+        "cpc": 6.81,
+        "position": 25,
+        "url": "https://groundsmennc.com/what-is-the-meaning-of-landscaping.html",
+        "is_new": true,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "landscaping charlotte nc",
+        "volume": 880,
+        "cpc": 12.5,
+        "position": 28,
+        "url": "https://groundsmennc.com/landscaping-charlotte-nc.html",
+        "is_new": true,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "lawn care charlotte nc",
+        "volume": 720,
+        "cpc": 18.0,
+        "position": 32,
+        "url": "https://groundsmennc.com/lawn-care-charlotte-nc.html",
+        "is_new": true,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "lawn care near me",
+        "volume": 33100,
+        "cpc": 12.34,
+        "position": 38,
+        "url": "https://groundsmennc.com/lawn-care-concord-nc.html",
+        "is_new": true,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "landscaping near me",
+        "volume": 49500,
+        "cpc": 8.56,
+        "position": 42,
+        "url": "https://groundsmennc.com/",
+        "is_new": true,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      },
+      {
+        "keyword": "landscaper near me",
+        "volume": 27100,
+        "cpc": 7.89,
+        "position": 45,
+        "url": "https://groundsmennc.com/",
+        "is_new": true,
+        "is_up": false,
+        "is_down": false,
+        "change": 0
+      }
+    ],
+    "totalKeywords": 26,
+    "top3": 5,
+    "top10": 12,
+    "top20": 20,
+    "avgPosition": 14.8,
+    "trend": "up",
+    "lastUpdated": "2026-02-17"
+  },
+  "yeomanservicecenter.com": {
+    "name": "Yeoman Service Center",
+    "domain": "yeomanservicecenter.com",
+    "location": "Fort Wayne, IN",
+    "industry": "Auto Repair",
+    "strategist": "Labeeb",
+    "status": "pending",
+    "keywords": []
+  },
+  "airtecservice.com": {
+    "name": "Airtec Service",
+    "domain": "airtecservice.com",
+    "location": "Watsonville, CA",
+    "industry": "HVAC",
+    "strategist": "Labeeb",
+    "status": "pending",
+    "keywords": []
+  },
+  "plumbingrenewal.com": {
+    "name": "Plumbing & Sewer Renewal",
+    "domain": "plumbingrenewal.com",
+    "location": "Portland, OR",
+    "industry": "Plumbing",
+    "strategist": "Labeeb",
+    "status": "pending",
+    "keywords": []
+  },
+  "rhino-restore.com": {
+    "name": "Rhino Restoration",
+    "domain": "rhino-restore.com",
+    "location": "Oldsmar, FL",
+    "industry": "Restoration",
+    "strategist": "Labeeb",
+    "status": "pending",
+    "keywords": []
+  },
+  "plumberspompanobeach.com": {
+    "name": "Shoreline Plumbing",
+    "domain": "plumberspompanobeach.com",
+    "location": "Pompano Beach, FL",
+    "industry": "Plumbing",
+    "strategist": "Miguel",
+    "status": "pending",
+    "keywords": []
+  },
+  "brayelectricalservices.com": {
+    "name": "Bray Electrical",
+    "domain": "brayelectricalservices.com",
+    "location": "Alpharetta, GA",
+    "industry": "Electrical",
+    "strategist": "Miguel",
+    "status": "pending",
+    "keywords": []
+  },
+  "hughsdetailing.com": {
+    "name": "Hugh's Detailing",
+    "domain": "hughsdetailing.com",
+    "location": "Miami, FL",
+    "industry": "Detailing",
+    "strategist": "Miguel",
+    "status": "pending",
+    "keywords": []
+  },
+  "baystateremodeling.com": {
+    "name": "Bay State Remodeling",
+    "domain": "baystateremodeling.com",
+    "location": "Bridgewater, MA",
+    "industry": "Remodeling",
+    "strategist": "Labeeb",
+    "status": "pending",
+    "keywords": []
+  },
+  "cateringbymichaels.com": {
+    "name": "Catering by Michaels",
+    "domain": "cateringbymichaels.com",
+    "location": "Chicago, IL",
+    "industry": "Catering",
+    "strategist": "Jesson",
+    "status": "pending",
+    "keywords": []
+  },
+  "decibelevents.com": {
+    "name": "Decibel Events",
+    "domain": "decibelevents.com",
+    "location": "\u2014",
+    "industry": "Events",
+    "strategist": "Labeeb",
+    "status": "pending",
+    "keywords": []
+  },
+  "camphappygrounds.com": {
+    "name": "Happy Grounds",
+    "domain": "camphappygrounds.com",
+    "location": "Multiple",
+    "industry": "Campgrounds",
+    "strategist": "Jesson",
+    "status": "pending",
+    "keywords": []
+  },
+  "irishmikesautomotive.com": {
+    "name": "Irish Mike's TCC",
+    "domain": "irishmikesautomotive.com",
+    "location": "\u2014",
+    "industry": "Auto Repair",
+    "strategist": "Labeeb",
+    "status": "pending",
+    "keywords": []
+  },
+  "lesliecarpenterdds.com": {
+    "name": "Leslie Carpenter DDS",
+    "domain": "lesliecarpenterdds.com",
+    "location": "\u2014",
+    "industry": "Dental",
+    "strategist": "Labeeb",
+    "status": "pending",
+    "keywords": []
+  },
+  "onewayconstructionnw.com": {
+    "name": "One-Way Construction",
+    "domain": "onewayconstructionnw.com",
+    "location": "\u2014",
+    "industry": "Construction",
+    "strategist": "Jesson",
+    "status": "pending",
+    "keywords": []
+  },
+  "_dnt": {
+    "name": "D&T Property Maint.",
+    "domain": null,
+    "location": "\u2014",
+    "industry": "Landscaping",
+    "strategist": "Miguel",
+    "status": "need_domain",
+    "keywords": []
+  },
+  "_federation": {
+    "name": "Federation Pest Control",
+    "domain": null,
+    "location": "\u2014",
+    "industry": "Pest Control",
+    "strategist": "Jesson",
+    "status": "need_domain",
+    "keywords": []
+  },
+  "_fiftythree": {
+    "name": "Fifty Three Restorations",
+    "domain": null,
+    "location": "\u2014",
+    "industry": "Restoration",
+    "strategist": "Jesson",
+    "status": "need_domain",
+    "keywords": []
+  },
+  "_freshcoat": {
+    "name": "Fresh Coat Painters",
+    "domain": null,
+    "location": "Naples, FL",
+    "industry": "Painting",
+    "strategist": "Miguel",
+    "status": "need_domain",
+    "keywords": []
+  },
+  "_junkbandits": {
+    "name": "Junk Bandits",
+    "domain": null,
+    "location": "\u2014",
+    "industry": "Junk Removal",
+    "strategist": "Miguel",
+    "status": "need_domain",
+    "keywords": []
+  },
+  "_kornerstone": {
+    "name": "Kornerstone Roofing",
+    "domain": null,
+    "location": "\u2014",
+    "industry": "Roofing",
+    "strategist": "Jesson",
+    "status": "need_domain",
+    "keywords": []
+  },
+  "_personalized": {
+    "name": "Personalized Property Mgmt",
+    "domain": null,
+    "location": "\u2014",
+    "industry": "Property Mgmt",
+    "strategist": "Miguel",
+    "status": "need_domain",
+    "keywords": []
+  },
+  "_waterworks": {
+    "name": "Waterworks Mechanical",
+    "domain": null,
+    "location": "Winchester, MA",
+    "industry": "Plumbing",
+    "strategist": "Jesson",
+    "status": "need_domain",
+    "keywords": []
+  }
+};
+    
+
+
+    let currentStrategistFilter = 'all';
+    let currentStatusFilter = 'all';
+    
+    function filterByStrategist() {
+        currentStrategistFilter = document.getElementById('strategist-filter').value;
+        renderOverview();
+    }
+    
+    function filterByStatus() {
+        currentStatusFilter = document.getElementById('status-filter').value;
+        renderOverview();
+    }
+
+    function toggleTheme() {
+        const body = document.body;
+        const btn = document.getElementById('theme-toggle');
+        body.classList.toggle('light');
+        const isLight = body.classList.contains('light');
+        btn.textContent = isLight ? '🌑' : '🌙';
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    }
+    
+    // Load saved theme
+    if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light');
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('theme-toggle');
+            if (btn) btn.textContent = '🌑';
+        });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
