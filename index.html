@@ -353,7 +353,7 @@
         const clients = Object.entries(clientData).sort((a, b) => a[1].name.localeCompare(b[1].name));
         
         list.innerHTML = clients.map(([domain, data]) => {
-            const top10 = data.keywords ? data.keywords.filter(k => k.position <= 10).length : 0;
+            const top10 = data.keywords ? data.keywords.filter(k => k.position != null && k.position <= 10).length : 0;
             const statusDot = data.status === 'active' ? '🟢' : (data.status === 'pending' ? '🟡' : '⚪');
             return `<button class="sidebar-item client-nav w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between mt-0.5 hover:bg-gray-800/50" data-domain="${domain}" onclick="showClient('${domain}')">
                 <div class="flex items-center gap-2 truncate">
@@ -371,8 +371,8 @@
         
         // Stats
         const totalKw = activeClients.reduce((sum, c) => sum + (c.keywords?.length || 0), 0);
-        const totalTop10 = activeClients.reduce((sum, c) => sum + (c.keywords?.filter(k => k.position <= 10).length || 0), 0);
-        const allPositions = activeClients.flatMap(c => (c.keywords || []).map(k => k.position));
+        const totalTop10 = activeClients.reduce((sum, c) => sum + (c.keywords?.filter(k => k.position != null && k.position <= 10).length || 0), 0);
+        const allPositions = activeClients.flatMap(c => (c.keywords || []).map(k => k.position).filter(p => p != null));
         const avgPos = allPositions.length ? (allPositions.reduce((a, b) => a + b, 0) / allPositions.length).toFixed(1) : '—';
         
         document.getElementById('stat-clients').textContent = clients.length;
@@ -401,10 +401,11 @@
             return a.name.localeCompare(b.name);
         }).map(c => {
             const kws = c.keywords || [];
-            const top3 = kws.filter(k => k.position <= 3).length;
-            const top10 = kws.filter(k => k.position <= 10).length;
-            const top20 = kws.filter(k => k.position <= 20).length;
-            const avg = kws.length ? (kws.reduce((s, k) => s + k.position, 0) / kws.length).toFixed(1) : '—';
+            const top3 = kws.filter(k => k.position != null && k.position <= 3).length;
+            const top10 = kws.filter(k => k.position != null && k.position <= 10).length;
+            const top20 = kws.filter(k => k.position != null && k.position <= 20).length;
+            const ranked = kws.filter(k => k.position != null);
+            const avg = ranked.length ? (ranked.reduce((s, k) => s + k.position, 0) / ranked.length).toFixed(1) : '—';
             const statusBadge = c.status === 'active' 
                 ? '<span class="bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs">Active</span>'
                 : c.status === 'pending'
@@ -438,11 +439,12 @@
         document.getElementById('client-meta').textContent = `${data.domain || '—'} · ${data.location || '—'} · ${data.industry || '—'} · Strategist: ${data.strategist || '—'}`;
         
         const kws = data.keywords || [];
-        const top3 = kws.filter(k => k.position <= 3).length;
-        const top10 = kws.filter(k => k.position <= 10).length;
-        const top20 = kws.filter(k => k.position <= 20).length;
+        const top3 = kws.filter(k => k.position != null && k.position <= 3).length;
+        const top10 = kws.filter(k => k.position != null && k.position <= 10).length;
+        const top20 = kws.filter(k => k.position != null && k.position <= 20).length;
         const rest = kws.length - top20;
-        const avg = kws.length ? (kws.reduce((s, k) => s + k.position, 0) / kws.length).toFixed(1) : '—';
+        const ranked = kws.filter(k => k.position != null);
+        const avg = ranked.length ? (ranked.reduce((s, k) => s + k.position, 0) / ranked.length).toFixed(1) : '—';
         
         document.getElementById('detail-top10').textContent = top10;
         document.getElementById('detail-avg').textContent = avg;
@@ -469,16 +471,16 @@
             return;
         }
         const tbody = document.getElementById('keyword-table-body');
-        tbody.innerHTML = keywords.sort((a, b) => a.position - b.position).map((kw, i) => {
+        tbody.innerHTML = keywords.sort((a, b) => { if (a.position == null) return 1; if (b.position == null) return -1; return a.position - b.position; }).map((kw, i) => {
             const urlShort = kw.url ? new URL(kw.url).pathname : '—';
             return `<tr class="border-b border-gray-800/30 hover:bg-gray-800/20">
-                <td class="p-3 text-center text-sm ${posClass(kw.position)}">${kw.position}</td>
+                <td class="p-3 text-center text-sm ${posClass(kw.position)}">${kw.position != null ? kw.position : ">100"}</td>
                 <td class="p-3 text-sm font-medium">${kw.keyword}</td>
                 <td class="p-3 text-center text-sm text-gray-400">${kw.volume?.toLocaleString() || '—'}</td>
                 <td class="p-3 text-center text-sm text-gray-500">$${kw.cpc?.toFixed(2) || '—'}</td>
                 <td class="p-3 text-center">
-                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg ${kw.position <= 3 ? 'bg-green-500/20' : kw.position <= 10 ? 'bg-blue-500/20' : kw.position <= 20 ? 'bg-yellow-500/20' : 'bg-red-500/20'} ${posClass(kw.position)} text-sm">
-                        ${kw.position}
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg ${kw.position != null && kw.position <= 3 ? 'bg-green-500/20' : kw.position != null && kw.position <= 10 ? 'bg-blue-500/20' : kw.position != null && kw.position <= 20 ? 'bg-yellow-500/20' : 'bg-gray-500/20'} ${posClass(kw.position)} text-sm">
+                        ${kw.position != null ? kw.position : ">100"}
                     </span>
                 </td>
                 <td class="p-3 text-center text-sm">${kw.is_new ? changeHtml('NEW') : changeHtml(kw.change || 0)}</td>
@@ -493,8 +495,8 @@
         let kws = [...(clientData[currentClient].keywords || [])];
         const filter = document.getElementById('kw-filter').value;
         
-        if (filter === 'top10') kws = kws.filter(k => k.position <= 10);
-        else if (filter === 'top20') kws = kws.filter(k => k.position <= 20);
+        if (filter === 'top10') kws = kws.filter(k => k.position != null && k.position <= 10);
+        else if (filter === 'top20') kws = kws.filter(k => k.position != null && k.position <= 20);
         else if (filter === 'drops') kws = kws.filter(k => k.is_down);
         else if (filter === 'gains') kws = kws.filter(k => k.is_up);
         
@@ -508,7 +510,7 @@
         
         if (sort === 'volume') kws.sort((a, b) => (b.volume || 0) - (a.volume || 0));
         else if (sort === 'change') kws.sort((a, b) => (b.change || 0) - (a.change || 0));
-        else kws.sort((a, b) => a.position - b.position);
+        else kws.sort((a, b) => { if (a.position == null) return 1; if (b.position == null) return -1; return a.position - b.position; });
         
         renderKeywordTable(kws);
     }
