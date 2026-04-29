@@ -401,10 +401,10 @@
             return a.name.localeCompare(b.name);
         }).map(c => {
             const kws = c.keywords || [];
-            const top3 = kws.filter(k => k.position <= 3).length;
+            const top3 = kws.filter(k => k.position != null && k.position <= 3).length;
             const top10 = kws.filter(k => k.position != null && k.position <= 10).length;
             const top20 = kws.filter(k => k.position != null && k.position <= 20).length;
-            const avg = kws.length ? (kws.reduce((s, k) => s + k.position, 0) / kws.length).toFixed(1) : '—';
+            const ranked = kws.filter(k => k.position != null); const avg = ranked.length ? (ranked.reduce((s, k) => s + k.position, 0) / ranked.length).toFixed(1) : '—';
             const statusBadge = c.status === 'active' 
                 ? '<span class="bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs">Active</span>'
                 : c.status === 'pending'
@@ -438,11 +438,11 @@
         document.getElementById('client-meta').textContent = `${data.domain || '—'} · ${data.location || '—'} · ${data.industry || '—'} · Strategist: ${data.strategist || '—'}`;
         
         const kws = data.keywords || [];
-        const top3 = kws.filter(k => k.position <= 3).length;
+        const top3 = kws.filter(k => k.position != null && k.position <= 3).length;
         const top10 = kws.filter(k => k.position != null && k.position <= 10).length;
         const top20 = kws.filter(k => k.position != null && k.position <= 20).length;
         const rest = kws.length - top20;
-        const avg = kws.length ? (kws.reduce((s, k) => s + k.position, 0) / kws.length).toFixed(1) : '—';
+        const rankedKws = kws.filter(k => k.position != null); const avg = rankedKws.length ? (rankedKws.reduce((s, k) => s + k.position, 0) / rankedKws.length).toFixed(1) : '—';
         
         document.getElementById('detail-top10').textContent = top10;
         document.getElementById('detail-avg').textContent = avg;
@@ -469,7 +469,7 @@
             return;
         }
         const tbody = document.getElementById('keyword-table-body');
-        tbody.innerHTML = keywords.sort((a, b) => a.position - b.position).map((kw, i) => {
+        tbody.innerHTML = keywords.sort((a, b) => { const pa = a.position ?? 9999; const pb = b.position ?? 9999; return pa - pb; }).map((kw, i) => {
             const urlShort = kw.url ? new URL(kw.url).pathname : '—';
             return `<tr class="border-b border-gray-800/30 hover:bg-gray-800/20">
                 <td class="p-3 text-center text-sm ${posClass(kw.position)}">${kw.position}</td>
@@ -508,7 +508,7 @@
         
         if (sort === 'volume') kws.sort((a, b) => (b.volume || 0) - (a.volume || 0));
         else if (sort === 'change') kws.sort((a, b) => (b.change || 0) - (a.change || 0));
-        else kws.sort((a, b) => a.position - b.position);
+        else kws.sort((a, b) => { const pa = a.position ?? 9999; const pb = b.position ?? 9999; return pa - pb; });
         
         renderKeywordTable(kws);
     }
