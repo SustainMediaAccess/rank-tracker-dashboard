@@ -372,7 +372,7 @@
         // Stats
         const totalKw = activeClients.reduce((sum, c) => sum + (c.keywords?.length || 0), 0);
         const totalTop10 = activeClients.reduce((sum, c) => sum + (c.keywords?.filter(k => k.position != null && k.position <= 10).length || 0), 0);
-        const allPositions = activeClients.flatMap(c => (c.keywords || []).map(k => k.position));
+        const allPositions = activeClients.flatMap(c => (c.keywords || []).filter(k => k.position != null).map(k => k.position));
         const avgPos = allPositions.length ? (allPositions.reduce((a, b) => a + b, 0) / allPositions.length).toFixed(1) : '—';
         
         document.getElementById('stat-clients').textContent = clients.length;
